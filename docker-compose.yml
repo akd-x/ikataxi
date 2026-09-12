@@ -1,0 +1,48 @@
+services:
+  api:
+    build: ./server
+    restart: unless-stopped
+    environment:
+      PORT: 4000
+      JWT_SECRET: ${JWT_SECRET}
+      CLIENT_ORIGIN: https://${DOMAIN}
+      DB_PATH: /app/data/data.sqlite
+    volumes:
+      - api_data:/app/data
+    networks:
+      - internal
+
+  web:
+    build:
+      context: ./client
+      args:
+        VITE_API_URL: https://${DOMAIN}
+    restart: unless-stopped
+    networks:
+      - internal
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - internal
+    depends_on:
+      - api
+      - web
+
+networks:
+  internal:
+
+volumes:
+  api_data:
+  caddy_data:
+  caddy_config:
